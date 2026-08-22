@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Las 20 Puertas Misteriosas - Juego Didáctico</title>
+    <!-- Tailwind CSS for utility styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Fredoka:wght@400;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-dark: #0f0c20;
+            --door-gold: #f59e0b;
+            --door-purple: #7c3aed;
+            --door-glow: rgba(124, 58, 237, 0.5);
+        }
+
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: radial-gradient(circle at center, #1e1b4b 0%, #0f172a 60%, #020617 100%);
+            min-height: 100vh;
+            color: #f8fafc;
+            user-select: none;
+        }
+
+        .font-cinzel {
+            font-family: 'Cinzel', serif;
+        }
+
+        .font-pixel {
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        /* Mysterious Door Card & Flip Animation */
+        .door-card {
+            perspective: 1000px;
+            height: 150px;
+        }
+
+        .door-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+
+        .door-card.opened .door-inner {
+            transform: rotateY(180deg);
+            cursor: default;
+        }
+
+        .door-front, .door-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 16px;
+        }
+
+        .door-front {
+            background: linear-gradient(135deg, #2e1065 0%, #4c1d95 50%, #1e1b4b 100%);
+            border: 3px solid #fbbf24;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(251, 191, 36, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .door-front:hover:not(.disabled) {
+            transform: translateY(-4px);
+            border-color: #fef08a;
+            box-shadow: 0 12px 25px rgba(251, 191, 36, 0.4), inset 0 0 20px rgba(251, 191, 36, 0.4);
+        }
+
+        .door-back {
+            transform: rotateY(180deg);
+            border: 3px solid #38bdf8;
+            background: #0f172a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 20px rgba(56, 189, 248, 0.3);
+            padding: 8px;
+            text-align: center;
+        }
+
+        /* Keyhole glow */
+        .keyhole-glow {
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.6; filter: drop-shadow(0 0 4px #fbbf24); }
+            50% { opacity: 1; filter: drop-shadow(0 0 12px #f59e0b); }
+        }
+
+        /* Modal backdrop blur */
+        .modal-blur {
+            backdrop-filter: blur(8px);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #7c3aed;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="p-3 md:p-6 flex flex-col justify-between min-h-screen">
+
+    <!-- Top Header Bar -->
+    <header class="w-full max-w-6xl mx-auto bg-slate-900/80 border-2 border-amber-500/50 rounded-2xl p-4 mb-4 shadow-2xl flex flex-wrap items-center justify-between gap-4 backdrop-blur-md">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-gradient-to-tr from-amber-600 to-yellow-400 rounded-xl border-2 border-amber-300 flex items-center justify-center text-black text-2xl shadow-lg keyhole-glow">
+                🚪
+            </div>
+            <div>
+                <h1 class="font-cinzel text-lg md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-100 to-amber-500 tracking-wider">
+                    LAS <span id="headerDoorCount">20</span> PUERTAS MISTERIOSAS
+                </h1>
+                <p class="text-xs text-amber-200/80 font-medium">
+                    Abre las puertas, responde preguntas y junta la mayor cantidad de puntos
+                </p>
+            </div>
+        </div>
+
+        <!-- Controls & Sound Toggle -->
+        <div class="flex items-center gap-2">
+            <button onclick="toggleAudio()" id="audioBtn" class="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/40 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition">
+                <i id="audioIcon" class="fas fa-volume-up text-amber-400"></i>
+                <span class="hidden sm:inline">Sonido</span>
+            </button>
+            <button onclick="openConfigModal()" class="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition">
+                <i class="fas fa-cog"></i>
+                <span class="hidden sm:inline">Editar Juego</span>
+            </button>
+            <button onclick="openModal('rulesModal')" class="bg-slate-800 hover:bg-slate-700 text-sky-400 border border-sky-500/40 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition">
+                <i class="fas fa-book-open"></i>
+                <span class="hidden sm:inline">Reglas</span>
+            </button>
+            <button onclick="openModal('modal-about')" class="bg-purple-950/60 hover:bg-purple-900 text-purple-200 border border-purple-500/40 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition">
+                <i class="fas fa-box-archive"></i>
+                <span class="hidden sm:inline">Baúles Mágicos</span>
+            </button>
+            <button onclick="openResetModal()" class="bg-red-900/60 hover:bg-red-800 text-red-200 border border-red-500/40 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition">
+                <i class="fas fa-rotate-left"></i>
+                <span class="hidden sm:inline">Reiniciar</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="w-full max-w-6xl mx-auto flex-grow flex flex-col gap-6 items-center">
+
+        <!-- SETUP SCREEN -->
+        <section id="setupScreen" class="bg-slate-900/90 border-2 border-amber-500/40 rounded-3xl p-6 md:p-10 my-auto text-center max-w-2xl mx-auto shadow-2xl backdrop-blur-md">
+            <div class="w-20 h-20 bg-amber-500/20 rounded-full border-2 border-amber-400 mx-auto flex items-center justify-center text-4xl mb-4 text-amber-300">
+                🗝️
+            </div>
+            <h2 class="font-cinzel text-2xl md:text-3xl font-extrabold text-amber-300 mb-2">
+                Configuración del Juego
+            </h2>
+            <p class="text-slate-300 text-sm mb-6">
+                Elige la cantidad de puertas y los alumnos o equipos. ¡Aquel con más puntos al abrir todas las puertas será el ganador!
+            </p>
+
+            <!-- Total Doors Selector -->
+            <div class="mb-5 space-y-2">
+                <label class="block text-xs font-pixel text-amber-400 uppercase tracking-widest">
+                    Cantidad Total de Puertas en el Tablero:
+                </label>
+                <div class="flex flex-wrap justify-center gap-2">
+                    <button onclick="selectTotalDoors(10)" id="doorCountBtn10" class="px-3.5 py-2 bg-slate-800 text-slate-300 font-bold rounded-xl border-2 border-slate-700 hover:border-amber-400 text-xs transition">10 Puertas</button>
+                    <button onclick="selectTotalDoors(20)" id="doorCountBtn20" class="px-3.5 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl border-2 border-amber-300 text-xs transition shadow-md">20 Puertas</button>
+                    <button onclick="selectTotalDoors(30)" id="doorCountBtn30" class="px-3.5 py-2 bg-slate-800 text-slate-300 font-bold rounded-xl border-2 border-slate-700 hover:border-amber-400 text-xs transition">30 Puertas</button>
+                    <button onclick="selectTotalDoors(40)" id="doorCountBtn40" class="px-3.5 py-2 bg-slate-800 text-slate-300 font-bold rounded-xl border-2 border-slate-700 hover:border-amber-400 text-xs transition">40 Puertas</button>
+                    <button onclick="selectTotalDoors(50)" id="doorCountBtn50" class="px-3.5 py-2 bg-slate-800 text-slate-300 font-bold rounded-xl border-2 border-slate-700 hover:border-amber-400 text-xs transition">50 Puertas</button>
+                </div>
+            </div>
+
+            <!-- Number of Players selector -->
+            <div class="mb-6 space-y-3">
+                <label class="block text-xs font-pixel text-amber-400 uppercase tracking-widest">
+                    Número de Alumnos / Equipos:
+                </label>
+                <div class="grid grid-cols-3 gap-3">
+                    <button onclick="selectPlayerCount(2)" id="pCountBtn2" class="p-3 bg-amber-500 text-slate-950 font-bold rounded-xl border-2 border-amber-300 shadow-md transition">
+                        2 Jugadores
+                    </button>
+                    <button onclick="selectPlayerCount(3)" id="pCountBtn3" class="p-3 bg-slate-800 text-slate-300 font-bold rounded-xl border-2 border-slate-700 hover:border-amber-400 transition">
+                        3 Jugadores
+                    </button>
+                    <button onclick="selectPlayerCount(4)" id="pCountBtn4" class="p-3 bg-slate-800 text-slate-300 font-bold rounded-xl border-2 border-slate-700 hover:border-amber-400 transition">
+                        4 Jugadores
+                    </button>
+                </div>
+            </div>
+
+            <!-- Player Names Input Grid -->
+            <div id="playerInputsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 text-left">
+                <!-- Dynamically inserted player name inputs -->
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button onclick="openConfigModal()" class="w-full sm:w-1/3 py-3.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/50 font-bold rounded-2xl text-xs md:text-sm flex items-center justify-center gap-2 transition">
+                    <i class="fas fa-edit"></i>
+                    Editar Contenido
+                </button>
+                <button onclick="startGame()" class="w-full sm:w-2/3 py-3.5 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black rounded-2xl text-base shadow-xl shadow-amber-500/20 flex items-center justify-center gap-3 transition transform hover:scale-[1.02]">
+                    <i class="fas fa-play text-lg"></i>
+                    ¡INICIAR AVENTURA!
+                </button>
+            </div>
+        </section>
+
+        <!-- GAME BOARD SCREEN -->
+        <section id="gameScreen" class="hidden w-full flex-col gap-6">
+            <!-- Game Info Header -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Scoreboard -->
+                <div id="scoreboard" class="md:col-span-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <!-- Dynamically populated players cards -->
+                </div>
+                <!-- Turn Banner -->
+                <div class="bg-slate-900/90 border-2 border-amber-500/50 rounded-2xl p-3 flex flex-col justify-center items-center text-center shadow-lg">
+                    <span class="text-[10px] font-pixel text-amber-400 uppercase tracking-wider mb-1">TURNO ACTUAL</span>
+                    <div class="flex items-center gap-2">
+                        <span id="currentTurnAvatar" class="text-2xl">🧙‍♂️</span>
+                        <span id="currentTurnName" class="font-bold text-amber-200 text-sm md:text-base">Equipo 1</span>
+                    </div>
+                    <div class="text-[11px] text-slate-400 mt-1">
+                        Puertas Abiertas: <span id="doorsOpenedCount" class="text-amber-400 font-bold">0 / 20</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Doors Grid (Dynamic size) -->
+            <div id="doorsGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4">
+                <!-- Dynamically populated doors -->
+            </div>
+        </section>
+
+        <!-- Nueva Sección: Los Baúles Mágicos -->
+        <div class="max-w-3xl w-full mt-6 bg-slate-900/80 backdrop-blur-md p-6 rounded-3xl border border-purple-500/30 shadow-xl text-center space-y-4">
+          <div class="flex items-center justify-center gap-3 text-amber-300">
+            <img src="TecnoNova.png" alt="Profe Arturo" class="w-10 h-10 rounded-full object-cover border-2 border-amber-400/60 shadow-md" onerror="this.src='https://placehold.co/80x80/4c1d95/fcd34d?text=TN'" />
+            <h3 class="font-cinzel text-xl sm:text-2xl font-bold text-amber-200">Los Baúles Mágicos</h3>
+          </div>
+          
+          <p class="text-slate-300 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
+            Este material educativo está hecho sin fines de lucro y diseñado de todo corazón para ti y tus estudiantes.
+          </p>
+
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-950/80 border border-rose-500/40 text-rose-300 text-xs font-bold uppercase tracking-wider">
+            <i class="fa-solid fa-ban"></i>
+            <span>Prohibida su venta</span>
+          </div>
+
+          <p class="text-xs sm:text-sm text-slate-400 pt-1">
+            Te invito a visitar mi perfil de GitHub y TikTok, me ayudas mucho compartiendo, dejando un like y siguiéndome.
+          </p>
+
+          <div class="flex flex-wrap justify-center gap-3 pt-1">
+            <a href="https://github.com/Arthur21586" target="_blank" rel="noopener noreferrer" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-100 border border-slate-700 hover:border-amber-400 text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all shadow-md">
+              <i class="fa-brands fa-github text-lg text-amber-400"></i>
+              <span>GitHub (@Arthur21586)</span>
+              <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-60"></i>
+            </a>
+
+            <a href="https://www.tiktok.com/@alp21586" target="_blank" rel="noopener noreferrer" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-100 border border-slate-700 hover:border-rose-400 text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all shadow-md">
+              <i class="fa-brands fa-tiktok text-lg text-rose-400"></i>
+              <span>TikTok (@alp21586)</span>
+              <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-60"></i>
+            </a>
+          </div>
+        </div>
+    </main>
+
+    <!-- MODALS SECTION -->
+
+    <!-- 1. Question Modal -->
+    <div id="questionModal" class="fixed inset-0 bg-slate-950/80 modal-blur z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-amber-500/60 rounded-3xl p-6 max-w-xl w-full shadow-2xl space-y-5 text-left relative overflow-hidden">
+            
+            <!-- Header Badges -->
+            <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <span id="questionCategory" class="px-3 py-1 bg-purple-900/60 text-purple-300 border border-purple-500/40 rounded-full text-xs font-semibold">
+                        Dificultad: Nivel 1
+                    </span>
+                    <span id="questionRewardPoints" class="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full text-xs font-bold">
+                        ⭐ +10 PUNTOS
+                    </span>
+                </div>
+                <!-- Countdown Timer Display -->
+                <div id="timerContainer" class="flex items-center gap-2 bg-red-950/60 border border-red-500/50 text-red-300 px-3 py-1 rounded-xl text-xs font-pixel">
+                    <i class="fas fa-clock animate-pulse text-red-400"></i>
+                    <span id="timerText">20s</span>
+                </div>
+            </div>
+
+            <!-- Timer Progress Bar -->
+            <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-700">
+                <div id="timerBar" class="bg-gradient-to-r from-amber-500 to-red-500 h-full w-full transition-all duration-1000 ease-linear"></div>
+            </div>
+
+            <!-- Question Prompt -->
+            <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                <h3 id="questionText" class="text-base md:text-lg font-bold text-amber-100 leading-snug">
+                    ¿Pregunta de prueba?
+                </h3>
+            </div>
+
+            <!-- Options Grid -->
+            <div id="optionsGrid" class="grid grid-cols-1 gap-3">
+                <!-- Option buttons dynamically populated -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Result/Event Outcome Modal -->
+    <div id="eventModal" class="fixed inset-0 bg-slate-950/80 modal-blur z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-amber-500/60 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl text-center space-y-5">
+            <div id="eventIconBg" class="w-24 h-24 rounded-3xl mx-auto flex items-center justify-center text-5xl shadow-xl border-2 border-amber-500/40 bg-amber-500/10">
+                🚪
+            </div>
+
+            <div class="space-y-2">
+                <h3 id="eventTitle" class="font-cinzel text-xl md:text-2xl font-bold text-amber-300">
+                    ¡Resultado de la Puerta!
+                </h3>
+                <p id="eventDescription" class="text-slate-200 text-sm md:text-base leading-relaxed">
+                    Descripción del evento.
+                </p>
+                <div id="eventBadge" class="inline-block mt-2 px-4 py-1.5 bg-amber-500/20 border border-amber-400 text-amber-300 rounded-full text-xs font-pixel">
+                    +10 Puntos
+                </div>
+            </div>
+
+            <button onclick="closeEventModal()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-extrabold rounded-2xl text-sm shadow-lg transition">
+                CONTINUAR
+            </button>
+        </div>
+    </div>
+
+    <!-- 3. Rules Modal -->
+    <div id="rulesModal" class="fixed inset-0 bg-slate-950/80 modal-blur z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-sky-500/60 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 text-left">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-cinzel text-lg font-bold text-sky-400 flex items-center gap-2">
+                    <i class="fas fa-scroll text-sky-400"></i> Reglas de las Puertas
+                </h3>
+                <button onclick="closeModal('rulesModal')" class="text-slate-400 hover:text-white font-bold text-lg">✕</button>
+            </div>
+
+            <div class="space-y-3 text-xs md:text-sm text-slate-300 leading-relaxed max-h-[60vh] overflow-y-auto pr-1">
+                <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                    <strong class="text-amber-400 block mb-1">🚪 Puertas con Preguntas:</strong>
+                    Contienen preguntas educativas con opción múltiple. ¡Responde correctamente antes que termine el tiempo para sumar puntos!
+                </div>
+                <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                    <strong class="text-red-400 block mb-1">🚫 Puertas Trampa:</strong>
+                    Te hacen perder tu turno inmediatamente.
+                </div>
+                <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                    <strong class="text-purple-400 block mb-1">🎁 Premios y Castigos Especiales:</strong>
+                    Puedes obtener turnos extra, ganar puntos extra por buenas acciones o perder puntos por sustos o trampas.
+                </div>
+            </div>
+
+            <button onclick="closeModal('rulesModal')" class="w-full py-3 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-xl text-xs">
+                ¡ENTENDIDO!
+            </button>
+        </div>
+    </div>
+
+    <!-- 4. Final Victory Podium Modal -->
+    <div id="victoryModal" class="fixed inset-0 bg-slate-950/90 modal-blur z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-amber-500 rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl text-center space-y-6">
+            <div class="w-20 h-20 bg-gradient-to-tr from-amber-500 to-yellow-300 rounded-2xl border-2 border-amber-200 mx-auto flex items-center justify-center text-4xl shadow-xl animate-bounce">
+                👑
+            </div>
+
+            <div>
+                <span class="text-xs font-pixel text-amber-400 uppercase tracking-widest block mb-1">
+                    ¡FIN DEL JUEGO!
+                </span>
+                <h2 id="winnerTitle" class="font-cinzel text-2xl md:text-3xl font-black text-white">
+                    ¡Ganador del Juego!
+                </h2>
+            </div>
+
+            <!-- Leaderboard Rankings -->
+            <div id="finalRankings" class="space-y-2 text-left">
+                <!-- Dynamically filled leaderboard items -->
+            </div>
+
+            <button onclick="restartGame()" class="w-full py-4 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950 font-black rounded-2xl text-sm md:text-base shadow-xl">
+                <i class="fas fa-rotate-left mr-2"></i> JUGAR OTRA PARTIDA
+            </button>
+        </div>
+    </div>
+
+    <!-- 5. Editor / Customizer Modal (Questions & Doors Events) -->
+    <div id="configModal" class="fixed inset-0 bg-slate-950/80 modal-blur z-50 hidden flex items-center justify-center p-3 md:p-6">
+        <div class="bg-slate-900 border-2 border-amber-500/60 rounded-3xl p-4 md:p-6 max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl text-left">
+            
+            <!-- Header -->
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 text-xl">
+                        ⚙️
+                    </div>
+                    <div>
+                        <h3 class="font-cinzel text-lg md:text-xl font-bold text-amber-300">
+                            Editor de Preguntas y Premios
+                        </h3>
+                        <p class="text-xs text-slate-400">Modifica el contenido del juego a tu gusto</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('configModal')" class="text-slate-400 hover:text-white font-bold text-xl px-2">✕</button>
+            </div>
+
+            <!-- Editor Navigation Tabs -->
+            <div class="flex items-center gap-2 mb-3 border-b border-slate-800 pt-2 pb-2 px-1 overflow-x-auto">
+                <button id="tabBtnQuestions" onclick="switchConfigTab('questions')" class="px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 shadow shrink-0">
+                    <i class="fas fa-question-circle"></i> Preguntas (<span id="countQTab">10</span>)
+                </button>
+                <button id="tabBtnEvents" onclick="switchConfigTab('events')" class="px-4 py-2 bg-slate-800 text-slate-300 hover:text-white font-bold rounded-xl text-xs flex items-center gap-2 border border-slate-700 shrink-0">
+                    <i class="fas fa-gift"></i> Premios y Castigos (<span id="countETab">5</span>)
+                </button>
+            </div>
+
+            <!-- Scrollable Tab Content Container -->
+            <div class="flex-1 overflow-y-auto pr-2 space-y-4">
+                
+                <!-- TAB 1: QUESTIONS EDITOR -->
+                <div id="configTabQuestions" class="space-y-4">
+                    <div class="bg-slate-950/80 border border-amber-500/30 p-3.5 rounded-2xl text-xs text-amber-200 flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <i class="fas fa-info-circle mr-1"></i> Puedes personalizar las preguntas, asignar opciones, puntuación y tiempo.
+                        </div>
+                        <button onclick="addNewQuestion()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow">
+                            <i class="fas fa-plus-circle"></i> + Añadir Pregunta
+                        </button>
+                    </div>
+                    <div id="questionsEditorList" class="space-y-4">
+                        <!-- Questions form cards dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- TAB 2: EVENTS & PRIZES EDITOR -->
+                <div id="configTabEvents" class="hidden space-y-6">
+                    <div class="bg-slate-950/80 border border-purple-500/30 p-3.5 rounded-2xl text-xs text-purple-200 flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <i class="fas fa-info-circle mr-1"></i> Configura puertas trampa y crea premios o castigos con efectos personalizados (sumar o restar puntos, dar o quitar turnos).
+                        </div>
+                        <button onclick="addNewCustomEvent()" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow">
+                            <i class="fas fa-plus-circle"></i> + Añadir Premio / Castigo
+                        </button>
+                    </div>
+
+                    <!-- Total Doors & Trap Doors Quantity Config -->
+                    <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+                        <h4 class="font-bold text-sm text-amber-400 flex items-center gap-2">
+                            ⚙️ Configuración General de Puertas
+                        </h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">Cantidad Total de Puertas:</label>
+                                <select id="totalDoorsModalSelect" onchange="selectTotalDoors(parseInt(this.value))" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-amber-300 font-bold">
+                                    <option value="10">10 Puertas</option>
+                                    <option value="20" selected>20 Puertas</option>
+                                    <option value="30">30 Puertas</option>
+                                    <option value="40">40 Puertas</option>
+                                    <option value="50">50 Puertas</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">Puertas Trampa (Perder turno):</label>
+                                <input type="number" id="trapDoorsCountInput" min="0" max="50" value="5" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-red-400 font-bold">
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">Mensaje de Puerta Trampa:</label>
+                                <input type="text" id="evtDesc_loseTurn" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200" value="Te has topado con una puerta trampa. Pierdes tu turno.">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Story & Custom Events List -->
+                    <div id="customEventsEditorList" class="space-y-4">
+                        <!-- Custom & story events forms dynamically populated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Action Buttons Bar -->
+            <div class="mt-4 pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <button onclick="exportQuestionsJSON()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/40 rounded-xl text-xs font-semibold flex items-center gap-2">
+                        <i class="fas fa-download"></i> Exportar JSON
+                    </button>
+                    <button onclick="triggerImportJSON()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-semibold flex items-center gap-2">
+                        <i class="fas fa-upload"></i> Importar JSON
+                    </button>
+                    <input type="file" id="importJsonInput" accept=".json" onchange="importQuestionsJSON(event)" class="hidden">
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="restoreDefaultConfig()" class="px-3.5 py-2 bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-500/40 rounded-xl text-xs font-semibold">
+                        Restaurar Defecto
+                    </button>
+                    <button onclick="saveConfigFromModal()" class="px-5 py-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black rounded-xl text-xs shadow-lg">
+                        Guardar Cambios
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Reset Confirmation Modal -->
+    <div id="resetConfirmModal" class="fixed inset-0 bg-slate-950/80 modal-blur z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-red-500/60 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-center">
+            <div class="w-16 h-16 bg-red-500/20 text-red-400 rounded-2xl mx-auto flex items-center justify-center text-3xl border border-red-500/40">
+                ⚠️
+            </div>
+            <h3 class="font-cinzel text-xl font-bold text-red-300">¿Reiniciar la Partida?</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+                Se volverá a la pantalla de inicio y se perderá el progreso de la partida actual.
+            </p>
+            <div class="flex items-center gap-3 pt-2">
+                <button onclick="closeModal('resetConfirmModal')" class="w-1/2 py-2.5 bg-slate-800 text-slate-300 font-bold rounded-xl text-xs border border-slate-700">
+                    Cancelar
+                </button>
+                <button onclick="executeResetGame()" class="w-1/2 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-xs shadow-lg">
+                    Sí, Reiniciar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. ABOUT & CREDITS MODAL -->
+    <div id="modal-about" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-purple-500/40 max-w-lg w-full p-6 sm:p-8 rounded-3xl text-center relative shadow-2xl space-y-4">
+        <div class="w-20 h-20 mx-auto mb-2 rounded-2xl overflow-hidden border-2 border-amber-400/50 shadow-xl flex items-center justify-center bg-slate-900">
+          <img src="TecnoNova.png" alt="Profe Arturo" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/100x100/4c1d95/fcd34d?text=TN'" />
+        </div>
+        <h3 class="font-cinzel text-2xl font-bold text-amber-300 mb-1">Los Baúles Mágicos</h3>
+        <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+          Este material educativo está hecho sin fines de lucro y diseñado de todo corazón para ti y tus estudiantes.
+        </p>
+
+        <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-rose-950/80 border border-rose-500/40 text-rose-300 text-xs font-bold uppercase tracking-wider">
+          <i class="fa-solid fa-ban"></i>
+          <span>Prohibida su venta</span>
+        </div>
+
+        <p class="text-xs text-slate-400">
+          Te invito a visitar mi perfil de GitHub y TikTok, me ayudas mucho compartiendo, dejando un like y siguiéndome.
+        </p>
+
+        <div class="flex flex-col sm:flex-row justify-center gap-3 pt-2">
+          <a href="https://github.com/Arthur21586" target="_blank" rel="noopener noreferrer" class="px-4 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-100 border border-slate-700 hover:border-amber-400 text-xs font-semibold flex items-center justify-center gap-2 transition-all">
+            <i class="fa-brands fa-github text-base text-amber-400"></i>
+            <span>GitHub (@Arthur21586)</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-60"></i>
+          </a>
+
+          <a href="https://www.tiktok.com/@alp21586" target="_blank" rel="noopener noreferrer" class="px-4 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-100 border border-slate-700 hover:border-rose-400 text-xs font-semibold flex items-center justify-center gap-2 transition-all">
+            <i class="fa-brands fa-tiktok text-base text-rose-400"></i>
+            <span>TikTok (@alp21586)</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-60"></i>
+          </a>
+        </div>
+
+        <button onclick="closeModal('modal-about')" class="w-full mt-2 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wide">
+          Cerrar
+        </button>
+      </div>
+    </div>
+
+    <!-- Custom Toast Alert Message -->
+    <div id="toastAlert" class="fixed bottom-6 right-6 z-50 hidden bg-slate-900 border-2 border-amber-400 text-white px-5 py-3 rounded-2xl font-semibold text-xs shadow-2xl flex items-center gap-3 transition-all duration-300 transform translate-y-4">
+        <i id="toastIcon" class="fas fa-star text-amber-400 text-base"></i>
+        <span id="toastText">Mensaje del sistema</span>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        /* DEFAULT DATA BANKS */
+        const DEFAULT_QUESTIONS = [
+            { difficulty: 1, points: 10, time: 20, question: '¿Cuántos días tiene un año bisiesto?', options: ['365 días', '366 días', '364 días', '360 días'], correct: 1 },
+            { difficulty: 2, points: 20, time: 20, question: '¿Cuál es el planeta más grande de nuestro Sistema Solar?', options: ['Marte', 'Saturno', 'Júpiter', 'Neptuno'], correct: 2 },
+            { difficulty: 3, points: 30, time: 20, question: '¿Cuál es el resultado de resolver la operación: 12 x 5 + 10?', options: ['60', '70', '50', '80'], correct: 1 },
+            { difficulty: 4, points: 40, time: 20, question: '¿En qué continente se encuentra el río Amazonas?', options: ['África', 'Asia', 'América del Sur', 'Europa'], correct: 2 },
+            { difficulty: 5, points: 50, time: 20, question: '¿Qué tipo de palabra es "velozmente"?', options: ['Sustantivo', 'Verbo', 'Adjetivo', 'Adverbio'], correct: 3 },
+            { difficulty: 6, points: 60, time: 20, question: '¿Cuál es el elemento químico representado por el símbolo "O"?', options: ['Oro', 'Oxígeno', 'Osmio', 'Plata'], correct: 1 },
+            { difficulty: 7, points: 70, time: 20, question: 'Si un triángulo tiene ángulos de 90° y 45°, ¿cuánto mide el tercer ángulo?', options: ['45°', '60°', '30°', '90°'], correct: 0 },
+            { difficulty: 8, points: 80, time: 20, question: '¿En qué año llegó el ser humano a la Luna por primera vez?', options: ['1965', '1969', '1972', '1959'], correct: 1 },
+            { difficulty: 9, points: 90, time: 15, question: '¿Cuál es la raíz cuadrada del número 144?', options: ['10', '14', '12', '16'], correct: 2 },
+            { difficulty: 10, points: 100, time: 15, question: '¿Qué proceso realizan las plantas para transformar la luz solar en energía química?', options: ['Respiración celular', 'Fotosíntesis', 'Quimiosíntesis', 'Transpiración'], correct: 1 }
+        ];
+
+        const DEFAULT_CUSTOM_EVENTS = [
+            { id: 'cat', type: 'points', icon: '🐱', title: '🐱 Gato Perdido', desc: 'Encontraste a un gatito y lo devolviste. ¡Ganaste puntos!', points: 10 },
+            { id: 'grandma', type: 'points', icon: '👵', title: '👵 Ayudaste a la Abuela', desc: 'Ayudaste a una abuelita a abrir la pesada puerta.', points: 15 },
+            { id: 'ghost', type: 'points', icon: '👻', title: '👻 Fantasma Asustadizo', desc: '¡Un fantasma te asustó y perdiste puntos de valentía!', points: -10 },
+            { id: 'gift_extra', type: 'extra_turn', icon: '🎁', title: '🎁 Regalo Especial', desc: '¡Encontraste un regalo mágico! Obtienes un Turno Extra.', points: 0 },
+            { id: 'gift_trap', type: 'lose_turn', icon: '📦', title: '📦 Regalo Trampa', desc: 'Abriste la caja de regalo pero... ¡era una trampa! Pierdes tu turno.', points: 0 }
+        ];
+
+        const AVATARS = ['🧙‍♂️', '🧝‍♀️', '🦸‍♂️', '👩‍🚀', '🦁', '🦊', '🦄', '🤖'];
+
+        let audioEnabled = true;
+        let totalDoorsCount = 20;
+        let selectedPlayerCount = 2;
+        let players = [];
+        let currentTurnIndex = 0;
+        let doorsOpened = 0;
+        let doorsState = [];
+        let timerInterval = null;
+        let currentQuestionData = null;
+        let currentQuestionDoorIndex = null;
+        let pendingTurnAdvance = false;
+
+        let questionsBank = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+        let customEventsBank = JSON.parse(JSON.stringify(DEFAULT_CUSTOM_EVENTS));
+        let trapDoorsCount = 5;
+        let loseTurnMessage = 'Te has topado con una puerta trampa. Pierdes tu turno.';
+
+        // Select total doors (10, 20, 30, 40, 50)
+        function selectTotalDoors(count) {
+            sound.playClick();
+            totalDoorsCount = count;
+
+            // Update setup buttons styling
+            [10, 20, 30, 40, 50].forEach(n => {
+                const btn = document.getElementById(`doorCountBtn${n}`);
+                if (btn) {
+                    if (n === count) {
+                        btn.className = 'px-3.5 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl border-2 border-amber-300 text-xs transition shadow-md';
+                    } else {
+                        btn.className = 'px-3.5 py-2 bg-slate-800 text-slate-300 font-bold rounded-xl border-2 border-slate-700 hover:border-amber-400 text-xs transition';
+                    }
+                }
+            });
+
+            // Update modal select if open
+            const modalSelect = document.getElementById('totalDoorsModalSelect');
+            if (modalSelect) modalSelect.value = count;
+
+            // Update titles
+            const headerCount = document.getElementById('headerDoorCount');
+            if (headerCount) headerCount.innerText = totalDoorsCount;
+        }
+
+        /* WEB AUDIO SYNTHESIZER */
+        const sound = {
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            },
+            playBeep(freq, type, duration, vol = 0.1) {
+                if (!audioEnabled) return;
+                try {
+                    this.init();
+                    if (!this.ctx) return;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            },
+            playClick() { this.playBeep(400, 'sine', 0.08, 0.1); },
+            playCorrect() {
+                if (!audioEnabled) return;
+                this.playBeep(523.25, 'triangle', 0.1, 0.15);
+                setTimeout(() => this.playBeep(659.25, 'triangle', 0.1, 0.15), 100);
+                setTimeout(() => this.playBeep(783.99, 'triangle', 0.15, 0.15), 200);
+                setTimeout(() => this.playBeep(1046.50, 'triangle', 0.25, 0.2), 300);
+            },
+            playWrong() {
+                if (!audioEnabled) return;
+                this.playBeep(220, 'sawtooth', 0.15, 0.2);
+                setTimeout(() => this.playBeep(180, 'sawtooth', 0.25, 0.2), 150);
+            },
+            playFlip() {
+                this.playBeep(300, 'sine', 0.12, 0.15);
+            },
+            playVictory() {
+                if (!audioEnabled) return;
+                const notes = [523.25, 659.25, 783.99, 1046.50, 880, 1046.50];
+                notes.forEach((n, i) => {
+                    setTimeout(() => this.playBeep(n, 'triangle', 0.2, 0.2), i * 150);
+                });
+            }
+        };
+
+        // Toggle Audio
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById('audioIcon');
+            if (audioEnabled) {
+                icon.className = 'fas fa-volume-up text-amber-400';
+                showToast('Sonido Activado', 'fa-volume-up');
+            } else {
+                icon.className = 'fas fa-volume-mute text-slate-400';
+                showToast('Sonido Desactivado', 'fa-volume-mute');
+            }
+        }
+
+        // Select player count
+        function selectPlayerCount(count) {
+            sound.playClick();
+            selectedPlayerCount = count;
+            [2, 3, 4].forEach(n => {
+                const btn = document.getElementById(`pCountBtn${n}`);
+                if (n === count) {
+                    btn.className = 'p-3 bg-amber-500 text-slate-950 font-bold rounded-xl border-2 border-amber-300 shadow-md transition';
+                } else {
+                    btn.className = 'p-3 bg-slate-800 text-slate-300 font-bold rounded-xl border-2 border-slate-700 hover:border-amber-400 transition';
+                }
+            });
+            renderPlayerInputs();
+        }
+
+        // Render player inputs on setup screen
+        function renderPlayerInputs() {
+            const container = document.getElementById('playerInputsContainer');
+            container.innerHTML = '';
+            for (let i = 0; i < selectedPlayerCount; i++) {
+                const defaultName = `Equipo ${i + 1}`;
+                const avatar = AVATARS[i % AVATARS.length];
+                container.innerHTML += `
+                    <div class="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 flex items-center gap-3">
+                        <div class="text-2xl p-2 bg-slate-900 border border-slate-700 rounded-xl">
+                            ${avatar}
+                        </div>
+                        <div class="flex-1">
+                            <label class="text-[10px] text-amber-400 font-pixel uppercase block mb-1">Nombre Jugador ${i + 1}</label>
+                            <input type="text" id="playerInputName_${i}" value="${defaultName}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-semibold focus:border-amber-400 outline-none">
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Start Game
+        function startGame() {
+            sound.playClick();
+            players = [];
+            for (let i = 0; i < selectedPlayerCount; i++) {
+                const nameInput = document.getElementById(`playerInputName_${i}`);
+                const name = nameInput && nameInput.value.trim() ? nameInput.value.trim() : `Equipo ${i + 1}`;
+                players.push({
+                    id: i,
+                    name: name,
+                    avatar: AVATARS[i % AVATARS.length],
+                    score: 0
+                });
+            }
+
+            currentTurnIndex = 0;
+            doorsOpened = 0;
+            generateBoard();
+
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            document.getElementById('gameScreen').classList.add('flex');
+
+            updateScoreboardUI();
+            showToast('¡La aventura ha comenzado!', 'fa-door-open');
+        }
+
+        // Generate Board with dynamic mystery doors
+        function generateBoard() {
+            const doorsGrid = document.getElementById('doorsGrid');
+            doorsGrid.innerHTML = '';
+            doorsState = [];
+
+            // Update Header Door Count
+            document.getElementById('headerDoorCount').innerText = totalDoorsCount;
+
+            // Prepare doors contents array
+            let contents = [];
+
+            // Pools
+            let qPool = [...questionsBank];
+            qPool.sort(() => Math.random() - 0.5);
+
+            let ePool = [...customEventsBank];
+
+            // 1. Add trap doors (up to trapDoorsCount)
+            const trapsToAdd = Math.min(trapDoorsCount, Math.floor(totalDoorsCount * 0.4));
+            for (let i = 0; i < trapsToAdd; i++) {
+                contents.push({
+                    type: 'trap',
+                    title: '🚫 Puerta Trampa',
+                    icon: '🚫',
+                    desc: loseTurnMessage,
+                    points: 0
+                });
+            }
+
+            // 2. Add custom events
+            ePool.forEach(evt => {
+                if (contents.length < totalDoorsCount) {
+                    contents.push({
+                        type: 'event',
+                        eventData: evt
+                    });
+                }
+            });
+
+            // 3. Fill remaining with questions (loop through qPool if needed)
+            let qIndex = 0;
+            while (contents.length < totalDoorsCount) {
+                if (qPool.length === 0) {
+                    qPool = [...questionsBank];
+                    qPool.sort(() => Math.random() - 0.5);
+                }
+                const baseQ = qPool.pop() || {
+                    difficulty: 1,
+                    points: 10,
+                    time: 20,
+                    question: `¿Pregunta Sorpresa #${contents.length + 1}?`,
+                    options: ['Opción A', 'Opción B (Correcta)', 'Opción C', 'Opción D'],
+                    correct: 1
+                };
+                contents.push({
+                    type: 'question',
+                    qData: baseQ
+                });
+            }
+
+            // Shuffle all doors
+            contents = contents.slice(0, totalDoorsCount);
+            contents.sort(() => Math.random() - 0.5);
+
+            // Render doors
+            contents.forEach((item, idx) => {
+                doorsState.push({
+                    id: idx,
+                    opened: false,
+                    content: item
+                });
+
+                doorsGrid.innerHTML += `
+                    <div class="door-card" id="doorCard_${idx}" onclick="handleDoorClick(${idx})">
+                        <div class="door-inner" id="doorInner_${idx}">
+                            <!-- FRONT -->
+                            <div class="door-front group">
+                                <div class="text-amber-400 font-cinzel text-xl font-black mb-1">
+                                    ${idx + 1}
+                                </div>
+                                <div class="w-8 h-8 rounded-full bg-slate-900 border border-amber-400/60 flex items-center justify-center text-amber-300 keyhole-glow text-sm">
+                                    🔑
+                                </div>
+                                <span class="text-[9px] text-amber-200/60 font-pixel mt-1">ABRIR</span>
+                            </div>
+                            <!-- BACK -->
+                            <div class="door-back" id="doorBack_${idx}">
+                                <span class="text-2xl">❓</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('doorsOpenedCount').innerText = `0 / ${totalDoorsCount}`;
+        }
+
+        // Handle Door Click
+        function handleDoorClick(doorIndex) {
+            const door = doorsState[doorIndex];
+            if (!door || door.opened) return;
+
+            sound.playFlip();
+            door.opened = true;
+            doorsOpened++;
+
+            const doorCard = document.getElementById(`doorCard_${doorIndex}`);
+            const doorBack = document.getElementById(`doorBack_${doorIndex}`);
+            doorCard.classList.add('opened');
+
+            document.getElementById('doorsOpenedCount').innerText = `${doorsOpened} / ${totalDoorsCount}`;
+
+            const content = door.content;
+
+            if (content.type === 'question') {
+                doorBack.innerHTML = `
+                    <span class="text-2xl">❓</span>
+                    <span class="text-[10px] text-sky-300 font-bold mt-1">Pregunta</span>
+                `;
+                setTimeout(() => {
+                    openQuestionModal(content.qData, doorIndex);
+                }, 500);
+            } else if (content.type === 'trap') {
+                doorBack.innerHTML = `
+                    <span class="text-2xl">🚫</span>
+                    <span class="text-[10px] text-red-400 font-bold mt-1">Trampa</span>
+                `;
+                setTimeout(() => {
+                    showEventOutcome({
+                        icon: '🚫',
+                        title: '🚫 Puerta Trampa',
+                        desc: content.desc,
+                        badge: 'Pierdes Turno',
+                        type: 'lose_turn'
+                    });
+                }, 500);
+            } else if (content.type === 'event') {
+                const evt = content.eventData;
+                doorBack.innerHTML = `
+                    <span class="text-2xl">${evt.icon || '⭐'}</span>
+                    <span class="text-[10px] text-amber-300 font-bold mt-1">${evt.title}</span>
+                `;
+                setTimeout(() => {
+                    if (evt.type === 'points') {
+                        const pts = parseInt(evt.points) || 0;
+                        players[currentTurnIndex].score += pts;
+                        updateScoreboardUI();
+                        
+                        const badgeText = pts >= 0 ? `+${pts} Puntos` : `${pts} Puntos`;
+                        showEventOutcome({
+                            icon: evt.icon || '⭐',
+                            title: evt.title,
+                            desc: evt.desc,
+                            badge: badgeText,
+                            type: 'normal'
+                        });
+                    } else if (evt.type === 'extra_turn') {
+                        showEventOutcome({
+                            icon: evt.icon || '🎁',
+                            title: evt.title,
+                            desc: evt.desc,
+                            badge: '⭐ TURNO EXTRA',
+                            type: 'extra_turn'
+                        });
+                    } else if (evt.type === 'lose_turn') {
+                        showEventOutcome({
+                            icon: evt.icon || '🚫',
+                            title: evt.title,
+                            desc: evt.desc,
+                            badge: '🚫 Pierdes Turno',
+                            type: 'lose_turn'
+                        });
+                    }
+                }, 500);
+            }
+        }
+
+        // Open Question Modal
+        function openQuestionModal(qData, doorIndex) {
+            currentQuestionData = qData;
+            currentQuestionDoorIndex = doorIndex;
+
+            document.getElementById('questionCategory').innerText = `Dificultad: Nivel ${qData.difficulty || 1}`;
+            document.getElementById('questionRewardPoints').innerText = `⭐ +${qData.points} PUNTOS`;
+            document.getElementById('questionText').innerText = qData.question;
+
+            const optionsGrid = document.getElementById('optionsGrid');
+            optionsGrid.innerHTML = '';
+
+            const optionLetters = ['A', 'B', 'C', 'D'];
+            qData.options.forEach((opt, idx) => {
+                optionsGrid.innerHTML += `
+                    <button onclick="selectOption(${idx})" id="optBtn_${idx}" class="w-full text-left p-3.5 bg-slate-950 hover:bg-slate-800 border border-slate-700 hover:border-amber-400 rounded-2xl text-xs md:text-sm text-slate-200 font-semibold flex items-center gap-3 transition">
+                        <span class="w-7 h-7 rounded-xl bg-amber-500/20 border border-amber-400/50 text-amber-300 font-bold flex items-center justify-center text-xs shrink-0">
+                            ${optionLetters[idx]}
+                        </span>
+                        <span>${opt}</span>
+                    </button>
+                `;
+            });
+
+            openModal('questionModal');
+            startTimer(qData.time || 20);
+        }
+
+        // Start Question Countdown Timer
+        function startTimer(seconds) {
+            clearInterval(timerInterval);
+            let timeLeft = seconds;
+            const timerText = document.getElementById('timerText');
+            const timerBar = document.getElementById('timerBar');
+
+            timerText.innerText = `${timeLeft}s`;
+            timerBar.style.width = '100%';
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerText.innerText = `${timeLeft}s`;
+                const percentage = (timeLeft / seconds) * 100;
+                timerBar.style.width = `${Math.max(0, percentage)}%`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    handleTimeOut();
+                }
+            }, 1000);
+        }
+
+        // Handle Option Selection
+        function selectOption(selectedIndex) {
+            clearInterval(timerInterval);
+            const correctIndex = currentQuestionData.correct;
+            const optionButtons = document.querySelectorAll('#optionsGrid button');
+
+            optionButtons.forEach(btn => btn.onclick = null);
+
+            if (selectedIndex === correctIndex) {
+                sound.playCorrect();
+                document.getElementById(`optBtn_${selectedIndex}`).className = 'w-full text-left p-3.5 bg-emerald-950/80 border-2 border-emerald-400 rounded-2xl text-xs md:text-sm text-emerald-200 font-bold flex items-center gap-3 shadow-lg';
+                
+                const pointsEarned = currentQuestionData.points || 10;
+                players[currentTurnIndex].score += pointsEarned;
+                updateScoreboardUI();
+
+                setTimeout(() => {
+                    closeModal('questionModal');
+                    showToast(`¡Correcto! +${pointsEarned} Puntos para ${players[currentTurnIndex].name}`, 'fa-check-circle');
+                    advanceTurn();
+                }, 1200);
+            } else {
+                sound.playWrong();
+                document.getElementById(`optBtn_${selectedIndex}`).className = 'w-full text-left p-3.5 bg-red-950/80 border-2 border-red-500 rounded-2xl text-xs md:text-sm text-red-200 font-bold flex items-center gap-3';
+                document.getElementById(`optBtn_${correctIndex}`).className = 'w-full text-left p-3.5 bg-emerald-950/80 border-2 border-emerald-400 rounded-2xl text-xs md:text-sm text-emerald-200 font-bold flex items-center gap-3 shadow-lg';
+
+                setTimeout(() => {
+                    closeModal('questionModal');
+                    showToast(`Respuesta incorrecta. Era la opción ${['A','B','C','D'][correctIndex]}`, 'fa-times-circle');
+                    advanceTurn();
+                }, 1800);
+            }
+        }
+
+        // Handle Time Out
+        function handleTimeOut() {
+            sound.playWrong();
+            const correctIndex = currentQuestionData.correct;
+            document.getElementById(`optBtn_${correctIndex}`).className = 'w-full text-left p-3.5 bg-emerald-950/80 border-2 border-emerald-400 rounded-2xl text-xs md:text-sm text-emerald-200 font-bold flex items-center gap-3 shadow-lg';
+
+            setTimeout(() => {
+                closeModal('questionModal');
+                showToast(`¡Tiempo agotado! Era la opción ${['A','B','C','D'][correctIndex]}`, 'fa-clock');
+                advanceTurn();
+            }, 1800);
+        }
+
+        // Show Event Outcome Modal
+        function showEventOutcome({ icon, title, desc, badge, type }) {
+            document.getElementById('eventIconBg').innerText = icon;
+            document.getElementById('eventTitle').innerText = title;
+            document.getElementById('eventDescription').innerText = desc;
+            document.getElementById('eventBadge').innerText = badge;
+
+            pendingTurnAdvance = (type !== 'extra_turn');
+
+            openModal('eventModal');
+        }
+
+        // Close Event Outcome Modal
+        function closeEventModal() {
+            closeModal('eventModal');
+            if (pendingTurnAdvance) {
+                advanceTurn();
+            } else {
+                showToast(`¡${players[currentTurnIndex].name} repite turno!`, 'fa-star');
+            }
+        }
+
+        // Advance Turn
+        function advanceTurn() {
+            if (doorsOpened >= totalDoorsCount) {
+                setTimeout(showVictoryPodium, 500);
+                return;
+            }
+
+            currentTurnIndex = (currentTurnIndex + 1) % players.length;
+            updateScoreboardUI();
+        }
+
+        // Update Scoreboard UI
+        function updateScoreboardUI() {
+            const scoreboard = document.getElementById('scoreboard');
+            scoreboard.innerHTML = '';
+
+            players.forEach((p, idx) => {
+                const isCurrent = (idx === currentTurnIndex);
+                scoreboard.innerHTML += `
+                    <div class="bg-slate-900/90 border-2 ${isCurrent ? 'border-amber-400 shadow-amber-500/20 shadow-lg scale-[1.02]' : 'border-slate-800 opacity-70'} rounded-2xl p-3 flex items-center gap-3 transition-all">
+                        <div class="text-2xl">${p.avatar}</div>
+                        <div class="overflow-hidden">
+                            <div class="text-xs font-bold text-slate-200 truncate">${p.name}</div>
+                            <div class="text-sm font-pixel text-amber-400">${p.score} <span class="text-[9px]">pts</span></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const currPlayer = players[currentTurnIndex];
+            document.getElementById('currentTurnAvatar').innerText = currPlayer.avatar;
+            document.getElementById('currentTurnName').innerText = currPlayer.name;
+        }
+
+        // Show Victory Podium Modal
+        function showVictoryPodium() {
+            sound.playVictory();
+            const sorted = [...players].sort((a, b) => b.score - a.score);
+            const winner = sorted[0];
+
+            document.getElementById('winnerTitle').innerText = `¡${winner.name} Gana la Partida!`;
+
+            const finalRankings = document.getElementById('finalRankings');
+            finalRankings.innerHTML = '';
+
+            const medalIcons = ['🥇', '🥈', '🥉', '4️⃣'];
+            sorted.forEach((p, idx) => {
+                finalRankings.innerHTML += `
+                    <div class="bg-slate-950 p-3.5 rounded-2xl border ${idx === 0 ? 'border-amber-400 bg-amber-500/10' : 'border-slate-800'} flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xl">${medalIcons[idx] || '🎖️'}</span>
+                            <span class="text-2xl">${p.avatar}</span>
+                            <span class="font-bold text-sm text-slate-200">${p.name}</span>
+                        </div>
+                        <span class="font-pixel text-amber-400 text-sm">${p.score} pts</span>
+                    </div>
+                `;
+            });
+
+            openModal('victoryModal');
+        }
+
+        // Restart Game
+        function restartGame() {
+            closeModal('victoryModal');
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('flex');
+            document.getElementById('setupScreen').classList.remove('hidden');
+        }
+
+        /* CONFIG / EDITOR MODAL FUNCTIONS */
+        function openConfigModal() {
+            renderQuestionsEditorList();
+            renderCustomEventsEditorList();
+            openModal('configModal');
+        }
+
+        function switchConfigTab(tab) {
+            sound.playClick();
+            if (tab === 'questions') {
+                document.getElementById('configTabQuestions').classList.remove('hidden');
+                document.getElementById('configTabEvents').classList.add('hidden');
+                document.getElementById('tabBtnQuestions').className = 'px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 shadow shrink-0';
+                document.getElementById('tabBtnEvents').className = 'px-4 py-2 bg-slate-800 text-slate-300 hover:text-white font-bold rounded-xl text-xs flex items-center gap-2 border border-slate-700 shrink-0';
+            } else {
+                document.getElementById('configTabQuestions').classList.add('hidden');
+                document.getElementById('configTabEvents').classList.remove('hidden');
+                document.getElementById('tabBtnEvents').className = 'px-4 py-2 bg-purple-500 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 shadow shrink-0';
+                document.getElementById('tabBtnQuestions').className = 'px-4 py-2 bg-slate-800 text-slate-300 hover:text-white font-bold rounded-xl text-xs flex items-center gap-2 border border-slate-700 shrink-0';
+            }
+        }
+
+        // Render Questions Editor Form
+        function renderQuestionsEditorList() {
+            const container = document.getElementById('questionsEditorList');
+            document.getElementById('countQTab').innerText = questionsBank.length;
+            container.innerHTML = '';
+
+            questionsBank.forEach((q, idx) => {
+                container.innerHTML += `
+                    <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3 relative group">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                            <span class="font-pixel text-[10px] text-amber-400">PREGUNTA #${idx + 1}</span>
+                            <button onclick="removeQuestion(${idx})" class="text-xs text-red-400 hover:text-red-300 font-bold flex items-center gap-1">
+                                <i class="fas fa-trash"></i> Eliminar
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div class="sm:col-span-2">
+                                <label class="text-[10px] text-slate-400 block mb-1">Texto de la Pregunta:</label>
+                                <input type="text" id="qTextInput_${idx}" value="${q.question}" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-slate-200">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[10px] text-slate-400 block mb-1">Puntos:</label>
+                                    <input type="number" id="qPointsInput_${idx}" value="${q.points}" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-amber-300 font-bold">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-slate-400 block mb-1">Tiempo (seg):</label>
+                                    <input type="number" id="qTimeInput_${idx}" value="${q.time || 20}" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-sky-300 font-bold">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Options Inputs -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                            ${q.options.map((opt, oIdx) => `
+                                <div class="flex items-center gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
+                                    <input type="radio" name="correctOpt_${idx}" value="${oIdx}" ${q.correct === oIdx ? 'checked' : ''} title="Marcar como correcta">
+                                    <span class="text-[10px] text-amber-400 font-bold w-4">${['A','B','C','D'][oIdx]}</span>
+                                    <input type="text" id="qOptInput_${idx}_${oIdx}" value="${opt}" class="w-full bg-transparent text-xs text-slate-200 outline-none">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function addNewQuestion() {
+            sound.playClick();
+            questionsBank.push({
+                difficulty: questionsBank.length + 1,
+                points: (questionsBank.length + 1) * 10,
+                time: 20,
+                question: 'Nueva pregunta personalizada...',
+                options: ['Opción A', 'Opción B', 'Opción C', 'Opción D'],
+                correct: 0
+            });
+            renderQuestionsEditorList();
+        }
+
+        function removeQuestion(index) {
+            sound.playClick();
+            questionsBank.splice(index, 1);
+            renderQuestionsEditorList();
+        }
+
+        // Custom events editor list
+        function renderCustomEventsEditorList() {
+            const container = document.getElementById('customEventsEditorList');
+            document.getElementById('countETab').innerText = customEventsBank.length;
+            document.getElementById('trapDoorsCountInput').value = trapDoorsCount;
+            document.getElementById('evtDesc_loseTurn').value = loseTurnMessage;
+            document.getElementById('totalDoorsModalSelect').value = totalDoorsCount;
+            container.innerHTML = '';
+
+            customEventsBank.forEach((evt, idx) => {
+                container.innerHTML += `
+                    <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                            <span class="font-pixel text-[10px] text-purple-400">EVENTO #${idx + 1}</span>
+                            <button onclick="removeCustomEvent(${idx})" class="text-xs text-red-400 hover:text-red-300 font-bold flex items-center gap-1">
+                                <i class="fas fa-trash"></i> Eliminar
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                            <div class="sm:col-span-1">
+                                <label class="text-[10px] text-slate-400 block mb-1">Icono / Emoji:</label>
+                                <input type="text" id="evtIconInput_${idx}" value="${evt.icon || '⭐'}" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-center text-sm font-bold">
+                            </div>
+                            <div class="sm:col-span-3">
+                                <label class="text-[10px] text-slate-400 block mb-1">Título del Evento:</label>
+                                <input type="text" id="evtTitleInput_${idx}" value="${evt.title}" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-amber-300 font-bold">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div>
+                                <label class="text-[10px] text-slate-400 block mb-1">Tipo de Evento:</label>
+                                <select id="evtTypeInput_${idx}" onchange="toggleEventPointsInput(${idx})" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-sky-300 font-bold">
+                                    <option value="points" ${evt.type === 'points' ? 'selected' : ''}>Puntos (+/-)</option>
+                                    <option value="extra_turn" ${evt.type === 'extra_turn' ? 'selected' : ''}>Turno Extra</option>
+                                    <option value="lose_turn" ${evt.type === 'lose_turn' ? 'selected' : ''}>Perder Turno</option>
+                                </select>
+                            </div>
+                            <div id="evtPointsContainer_${idx}" class="${evt.type !== 'points' ? 'opacity-40' : ''}">
+                                <label class="text-[10px] text-slate-400 block mb-1">Puntos (+ sumar / - restar):</label>
+                                <input type="number" id="evtPointsInput_${idx}" value="${evt.points || 0}" ${evt.type !== 'points' ? 'disabled' : ''} class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-amber-300 font-bold">
+                            </div>
+                            <div class="sm:col-span-1">
+                                <label class="text-[10px] text-slate-400 block mb-1">Estado Visual:</label>
+                                <div class="p-2 text-center bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-400">
+                                    ${evt.type === 'points' ? ((evt.points || 0) >= 0 ? '🎁 Premio' : '⚠️ Castigo') : '⭐ Especial'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1">Descripción que verá el alumno:</label>
+                            <input type="text" id="evtDescInput_${idx}" value="${evt.desc}" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-slate-200">
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function toggleEventPointsInput(idx) {
+            const typeSelect = document.getElementById(`evtTypeInput_${idx}`);
+            const pointsInput = document.getElementById(`evtPointsInput_${idx}`);
+            const container = document.getElementById(`evtPointsContainer_${idx}`);
+            if (typeSelect && pointsInput && container) {
+                const isPoints = typeSelect.value === 'points';
+                pointsInput.disabled = !isPoints;
+                if (isPoints) {
+                    container.classList.remove('opacity-40');
+                } else {
+                    container.classList.add('opacity-40');
+                }
+            }
+        }
+
+        function addNewCustomEvent() {
+            sound.playClick();
+            customEventsBank.push({
+                id: `evt_${Date.now()}`,
+                type: 'points',
+                icon: '⭐',
+                title: '⭐ Evento Sorpresa',
+                desc: '¡Has encontrado una sorpresa especial detrás de la puerta!',
+                points: 10
+            });
+            renderCustomEventsEditorList();
+        }
+
+        function removeCustomEvent(index) {
+            sound.playClick();
+            customEventsBank.splice(index, 1);
+            renderCustomEventsEditorList();
+        }
+
+        // Save Config From Modal
+        function saveConfigFromModal() {
+            sound.playClick();
+            
+            const updatedQuestions = [];
+            questionsBank.forEach((q, idx) => {
+                const qText = document.getElementById(`qTextInput_${idx}`)?.value || q.question;
+                const qPoints = parseInt(document.getElementById(`qPointsInput_${idx}`)?.value) || 10;
+                const qTime = parseInt(document.getElementById(`qTimeInput_${idx}`)?.value) || 20;
+
+                const opts = [];
+                for (let o = 0; o < 4; o++) {
+                    const optVal = document.getElementById(`qOptInput_${idx}_${o}`)?.value || `Opción ${o+1}`;
+                    opts.push(optVal);
+                }
+
+                const radios = document.getElementsByName(`correctOpt_${idx}`);
+                let selectedCorrect = 0;
+                radios.forEach(r => {
+                    if (r.checked) selectedCorrect = parseInt(r.value);
+                });
+
+                updatedQuestions.push({
+                    difficulty: idx + 1,
+                    points: qPoints,
+                    time: qTime,
+                    question: qText,
+                    options: opts,
+                    correct: selectedCorrect
+                });
+            });
+
+            questionsBank = updatedQuestions;
+
+            const totalSelect = document.getElementById('totalDoorsModalSelect');
+            if (totalSelect) selectTotalDoors(parseInt(totalSelect.value) || 20);
+
+            trapDoorsCount = parseInt(document.getElementById('trapDoorsCountInput')?.value) || 5;
+            loseTurnMessage = document.getElementById('evtDesc_loseTurn')?.value || loseTurnMessage;
+
+            customEventsBank.forEach((evt, idx) => {
+                const iconVal = document.getElementById(`evtIconInput_${idx}`)?.value;
+                const titleVal = document.getElementById(`evtTitleInput_${idx}`)?.value;
+                const typeVal = document.getElementById(`evtTypeInput_${idx}`)?.value;
+                const ptsVal = parseInt(document.getElementById(`evtPointsInput_${idx}`)?.value) || 0;
+                const descVal = document.getElementById(`evtDescInput_${idx}`)?.value;
+
+                if (iconVal) evt.icon = iconVal;
+                if (titleVal) evt.title = titleVal;
+                if (typeVal) evt.type = typeVal;
+                if (ptsVal !== undefined) evt.points = ptsVal;
+                if (descVal) evt.desc = descVal;
+            });
+
+            closeModal('configModal');
+            showToast('¡Configuración guardada exitosamente!', 'fa-check');
+        }
+
+        // Restore Defaults
+        function restoreDefaultConfig() {
+            sound.playClick();
+            questionsBank = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+            customEventsBank = JSON.parse(JSON.stringify(DEFAULT_CUSTOM_EVENTS));
+            trapDoorsCount = 5;
+            totalDoorsCount = 20;
+            selectTotalDoors(20);
+            loseTurnMessage = 'Te has topado con una puerta trampa. Pierdes tu turno.';
+            renderQuestionsEditorList();
+            renderCustomEventsEditorList();
+            showToast('Valores restaurados por defecto', 'fa-rotate-left');
+        }
+
+        /* EXPORT AND IMPORT JSON */
+        function exportQuestionsJSON() {
+            sound.playClick();
+            const exportData = {
+                questionsBank: questionsBank,
+                customEventsBank: customEventsBank,
+                trapDoorsCount: trapDoorsCount,
+                totalDoorsCount: totalDoorsCount,
+                loseTurnMessage: loseTurnMessage
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `preguntas_${totalDoorsCount}_puertas.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+
+            showToast('Archivo JSON exportado', 'fa-download');
+        }
+
+        function triggerImportJSON() {
+            sound.playClick();
+            document.getElementById('importJsonInput').click();
+        }
+
+        function importQuestionsJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.questionsBank && Array.isArray(data.questionsBank)) {
+                        questionsBank = data.questionsBank;
+                        if (data.customEventsBank) customEventsBank = data.customEventsBank;
+                        if (data.trapDoorsCount !== undefined) trapDoorsCount = data.trapDoorsCount;
+                        if (data.totalDoorsCount !== undefined) selectTotalDoors(data.totalDoorsCount);
+                        if (data.loseTurnMessage) loseTurnMessage = data.loseTurnMessage;
+
+                        renderQuestionsEditorList();
+                        renderCustomEventsEditorList();
+                        showToast('¡Preguntas importadas con éxito!', 'fa-file-import');
+                    } else {
+                        showToast('Formato JSON no válido', 'fa-exclamation-triangle');
+                    }
+                } catch(err) {
+                    showToast('Error al leer el archivo JSON', 'fa-exclamation-triangle');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        /* UTILITIES & MODAL CONTROLLERS */
+        function openModal(modalId) {
+            sound.playClick();
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function closeAboutModal() {
+            closeModal('modal-about');
+        }
+
+        function openResetModal() {
+            openModal('resetConfirmModal');
+        }
+
+        function executeResetGame() {
+            closeModal('resetConfirmModal');
+            restartGame();
+            showToast('Juego reiniciado', 'fa-rotate-left');
+        }
+
+        function showToast(message, iconClass = 'fa-star') {
+            const toast = document.getElementById('toastAlert');
+            const toastText = document.getElementById('toastText');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastText.innerText = message;
+            toastIcon.className = `fas ${iconClass} text-amber-400 text-base`;
+
+            toast.classList.remove('hidden', 'translate-y-4');
+            toast.classList.add('translate-y-0');
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-4', 'hidden');
+            }, 3000);
+        }
+
+        /* INITIALIZATION ON WINDOW LOAD */
+        window.onload = function() {
+            renderPlayerInputs();
+        };
+    </script>
+</body>
+</html>
